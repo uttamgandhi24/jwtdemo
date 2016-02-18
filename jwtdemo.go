@@ -67,7 +67,8 @@ func getPageHandler(w http.ResponseWriter, r *http.Request) {
 func authenticateHandler(w http.ResponseWriter, r *http.Request) {
   w.Header().Set("Content-Type", "application/json; charset=UTF-8")
   w.Header().Set("Access-Control-Allow-Origin", "*")
-  if !authenticateRequest(r.Header) {
+  authHeader := r.Header.Get("Authentication")
+  if len(authHeader)==0 || !authenticateRequest(authHeader) {
     w.WriteHeader(http.StatusUnauthorized)
     return
   }
@@ -84,24 +85,21 @@ func authenticateHandler(w http.ResponseWriter, r *http.Request) {
 func generateJWT()(tokenString string, err error) {
   token := jwt.New(jwt.SigningMethodHS256)
     // Set some claims
+    token.Claims["iat"] = time.Now().Unix()
     token.Claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
     // Sign and get the complete encoded token as a string
     tokenString, err = token.SignedString([]byte("secret"))
     return tokenString, err
 }
 
-func authenticateRequest(header map[string][]string) bool {
-  if header["Authentication"] == nil {
-    return false
-  }
-  encodedValue := header["Authentication"][0]
+func authenticateRequest(authHeader string) bool {
 
-  data, err := base64.StdEncoding.DecodeString(encodedValue)
+  data, err := base64.StdEncoding.DecodeString(authHeader)
   if err != nil {
     fmt.Println("error:", err)
     return false
   }
-  //fmt.Printf("%q\n", data)
+  fmt.Printf("%q\n", data)
   userpwd := strings.Split(string(data),":")
 
    userpwdmap := userpassword()
@@ -111,12 +109,11 @@ func authenticateRequest(header map[string][]string) bool {
   return false
 }
 
-func authenticateJWT(header map[string][]string) bool {
-  if header["Authentication"] == nil {
+func authenticateJWT(header http.Header) bool {
+  jwtString := header.Get("Authentication")
+  if len(jwtString) == 0 {
     return false
   }
-
-  jwtString := header["Authentication"][0]
   token, err := jwt.Parse(jwtString, func(token *jwt.Token) (interface{}, error) {
       // Don't forget to validate the alg is what you expect:
       if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
