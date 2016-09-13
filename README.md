@@ -1,11 +1,6 @@
 Pre-requisites to run this sample
 - Go should be installed and GOPATH should be set
-- MongoDB should be installed, mongod daemon should be running
 - get the dependencies using go get ./... from the directory where you keep jwtdemo.go
-- setup the mongodb database, run mongod service
- - lanuch mongo shell
- - use books
- - db.book.insert({"PageNum":2,"content":"This is a sample page"})
 - go run jwtdemo
 
 This runs the webservice on port 3080
